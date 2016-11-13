@@ -3,6 +3,34 @@
   <head>
     <meta charset="utf-8">
     <title>Step 1 - A Basic Pie Chart</title>
+    <style>
+      .legend {                                                   /* NEW */
+        font-size: 12px;                                          /* NEW */
+      }                                                           /* NEW */
+      rect {                                                      /* NEW */
+        stroke-width: 2;                                          /* NEW */
+      }                                                           /* NEW */
+    #chart {
+      height: 480px;
+      position: relative;
+      width: 480px;
+    }
+    .tooltip {
+      background: #eee;
+      box-shadow: 0 0 5px #999999;
+      color: #333;
+      display: none;
+      font-size: 12px;
+      left: 130px;
+      padding: 10px;
+      position: absolute;
+      text-align: center;
+      top: 95px;
+      width: 80px;
+      z-index: 10;
+    }
+    </style>
+
   </head>
   <body>
     <div id="chart"></div>
@@ -11,15 +39,24 @@
     <script>
       (function(d3) {
         'use strict';
-        /*d3.csv("/data/cities.csv", function(data) {
-            console.log(data[0]);
-        });*/
-        //var racedata = dataset['enrollByRace']
         var racedata = ['61', '105', '87', '103', '81', '112']; // temp
 
-        console.log(getGeoLifeByAddress('JSON',"110+Mustard,+CA+92620",null,null,"USA"));
+        getGeoLifeByAddress('JSON',"110+Mustard,+CA+92620",null,null,"USA");
         while(fuck == false){
         }
+        var tooltip = d3.select('#chart')            // NEW
+          .append('div')                             // NEW
+          .attr('class', 'tooltip');                 // NEW
+
+        tooltip.append('div')                        // NEW
+          .attr('class', 'label');                   // NEW
+
+        tooltip.append('div')                        // NEW
+          .attr('class', 'count');                   // NEW
+
+        tooltip.append('div')                        // NEW
+          .attr('class', 'percent');                 // NEW        var pitneydata = json_obj['themes']['raceTheme']['rangeVariable'][0]['field'];
+
         var pitneydata = json_obj['themes']['raceTheme']['rangeVariable'][0]['field'];
         var pitneydata2 = json_obj['themes']['ethnicityTheme']['individualValueVariable'];
         var dataset = [
@@ -95,7 +132,63 @@
           .attr('fill', function(d) {
             return color(d.data.label);
           });
-      })(window.d3);
+        path.on('mouseover', function(d) {
+          var total = d3.sum(dataset.map(function(d) {
+            return d.count;
+          }));
+          var percent = Math.round(1000 * d.data.count / total) / 10;
+          tooltip.select('.label').html(d.data.label);
+          tooltip.select('.count').html(d.data.count);
+          tooltip.select('.percent').html(percent + '%');
+          tooltip.style('display', 'block');
+        });
+        path.on('mouseout', function() {
+          tooltip.style('display', 'none');
+        });
+        path.on('mousemove', function(d) {
+          tooltip.style('top', (d3.event.layerY + 10) + 'px')
+            .style('left', (d3.event.layerX + 10) + 'px');
+        });
+        path2.on('mouseover', function(d) {
+          var total = d3.sum(dataset2.map(function(d) {
+            return d.count;
+          }));
+          var percent = Math.round(1000 * d.data.count / total) / 10;
+          tooltip.select('.label').html(d.data.label);
+          tooltip.select('.percent').html(percent + '%');
+          tooltip.style('display', 'block');
+        });
+        path2.on('mouseout', function() {
+          tooltip.style('display', 'none');
+        });
+        path2.on('mousemove', function(d) {
+          tooltip.style('top', (d3.event.layerY + 10) + 'px')
+            .style('left', (d3.event.layerX + 10) + 'px');
+        });
+        var legendRectSize = 18;
+        var legendSpacing = 4;
+        var legend = g.selectAll('.legend')
+          .data(color.domain())
+          .enter()
+          .append('g')
+          .attr('class', 'legend')
+          .attr('transform', function(d, i) {
+            var height = legendRectSize + legendSpacing;
+            var offset =  height * color.domain().length / 2;
+            var horz = -2 * legendRectSize;
+            var vert = i * height - offset;
+            return 'translate(' + horz + ',' + vert + ')';
+          });
+        legend.append('rect')
+          .attr('width', legendRectSize)
+          .attr('height', legendRectSize)
+          .style('fill', color)
+          .style('stroke', color);
+        legend.append('text')
+          .attr('x', legendRectSize + legendSpacing)
+          .attr('y', legendRectSize - legendSpacing)
+          .text(function(d) { return d; });
+             })(window.d3);
     </script>
   </body>
 </html>
