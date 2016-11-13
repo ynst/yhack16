@@ -6,7 +6,7 @@
 
 var LOCATION_INTELLIGENCE_SERVER_URL="https://api.pitneybowes.com/location-intelligence/geolife/v1/demographics/";
 
-var fuck = false;
+var wait = false;
 /**
  * Returns GeoLife Variables by address in XML or JSON formats
  * @param responseType
@@ -52,7 +52,7 @@ function processResponse(responseText){
    console.log(responseText);
     json_obj = JSON.parse(responseText);
    // console.log(json_obj["boundaries"]);
-    fuck = true;
+    wait = true;
 }
 
 

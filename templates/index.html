@@ -1,126 +1,602 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
+<meta charset="utf-8">
+<style>
 
-  .counties {
-    fill: none;
-  }
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  position: relative;
+}
 
-  .states {
-    fill: none;
-    stroke: #fff;
-    stroke-linejoin: round;
-  }
+/* stylesheet for your custom graph */
 
-  .state{
-    fill: none;
-    stroke: #a9a9a9;
-    stroke-width: 1;
-  }
-  .state:hover{
-    fill-opacity:0.5;
-  }
-  #tooltip {   
-    position: absolute;           
-    text-align: center;
-    padding: 20px;             
-    margin: 10px;
-    font: 12px sans-serif;        
-    background: lightsteelblue;   
-    border: 1px;      
-    border-radius: 2px;           
-    pointer-events: none;         
-  }
-  #tooltip h4{
-    margin:0;
-    font-size:14px;
-  }
-  #tooltip{
-    background:rgba(0,0,0,0.9);
-    border:1px solid grey;
-    border-radius:5px;
-    font-size:12px;
-    width:auto;
-    padding:4px;
-    color:white;
-    opacity:0;
-  }
-  #tooltip table{
-    table-layout:fixed;
-  }
-  #tooltip tr td{
-    padding:0;
-    margin:0;
-  }
-  #tooltip tr td:nth-child(1){
-    width:50px;
-  }
-  #tooltip tr td:nth-child(2){
-    text-align:center;
-  }
+.states {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+}
+.active {
+  fill: rgb(255,127,80);
+}
 
-  </style>
+.states-choropleth-container {
+  fill: #ccc;
+}
 
-  <!-- d3 libraries -->
-  <script src="https://d3js.org/d3.v4.min.js"></script>
-  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-  <script src="https://d3js.org/topojson.v2.min.js"></script>
+#tooltip-container {
+  position: absolute;
+  background-color: #fff;
+  color: #000;
+  padding: 10px;
+  border: 1px solid;
+  display: none;
+}
 
-  <!-- geomap libraries -->
-  <link href="https://d3-geomap.github.io/d3-geomap/css/d3.geomap.css" rel="stylesheet">
-  <script src="https://d3-geomap.github.io/d3-geomap/vendor/d3.geomap.dependencies.min.js"></script>
-  <script src="https://d3-geomap.github.io/d3-geomap/js/d3.geomap.min.js"></script>
+#school-tooltip-container {
+  position: absolute;
+  background-color: #fff;
+  color: #000;
+  padding: 10px;
+  border: 1px solid;
+  display: none;
+}
 
-  <!-- Tooltip script -->
-  <!-- <script type="text/javascript" async>
 
-    function tooltipHtml(n, d){ /* function to create html content string in tooltip div. */
-      return "<h4>"+n+"</h4><table>"+
-        "<tr><td>Low</td><td>"+(d.low)+"</td></tr>"+
-        "<tr><td>Average</td><td>"+(d.avg)+"</td></tr>"+
-        "<tr><td>High</td><td>"+(d.high)+"</td></tr>"+
-        "</table>";
+.tooltip_key {
+  font-weight: bold;
+}
+
+.tooltip_value {
+  margin-left: 20px;
+  float: right;
+}
+
+.option-select {
+  margin-top: 20px;
+  margin-left: 40px;
+  fill: #64b646;
+  width: auto;
+}
+
+</style>
+
+<div id="selectors"></div>
+
+<div id="tooltip-container"></div>
+<div id="school-tooltip-container"></div>
+
+<div id="canvas-svg"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/topojson/1.1.0/topojson.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+<!-- <script type="text/javascript">
+  /**
+   * Code sample for accessing Location Intelligence GeoLife API. This java scripts functions demonstrates the capability of Location Intelligence GeoLife API 
+   * with the XML and JSON format.
+   */
+
+
+  var LOCATION_INTELLIGENCE_SERVER_URL="https://api.pitneybowes.com/location-intelligence/geolife/v1/demographics/";
+
+  var fuck = false;
+  /**
+   * Returns GeoLife Variables by address in XML or JSON formats
+   * @param responseType
+   * @param address
+   * @param filter
+   * @param profile
+   * @param country
+   */
+  function getGeoLifeByAddress(responseType, address, filter, profile, country){
+    var xhr = new XMLHttpRequest();
+    var apiUrl = 'byaddress?address=' + address;
+    if (filter!= null && filter != undefined){
+      apiUrl += '&filter=' + filter;
     }
+    if (profile!= null && profile != undefined){
+      apiUrl += '&profile=' + profile;
+    }
+    if (country!= null && country != undefined){
+      apiUrl += '&country=' + country;
+    }
+      apiUrl += '&dataType=json';
+    xhr.open('GET', LOCATION_INTELLIGENCE_SERVER_URL + apiUrl);
+    if (responseType=='XML'){
+      xhr.setRequestHeader('Content-type', 'application/xml');
+      xhr.setRequestHeader('Accept', 'application/xml');
+    }
+    else if (responseType=='JSON'){
+      xhr.setRequestHeader('Content-type', 'application/json');
+      xhr.setRequestHeader('Accept', 'application/json');
+    }
+      xhr.setRequestHeader('Authorization','Bearer vDfbowthiMAPdTTi12XiAUVpCq2S');
 
+      xhr.onreadystatechange = function() {
+          if (xhr.readyState == 4) {
+              processResponse(xhr.responseText);
+          }
+      }
+    xhr.send(null);
+    return true;    
+  }
+  var json_obj;
+  function processResponse(responseText){
+     console.log(responseText);
+      json_obj = JSON.parse(responseText);
+     // console.log(json_obj["boundaries"]);
+      fuck = true;
+  }
+</script> -->
 
-    </script> -->
-</head>
-<body>
-  <div id="tooltip"></div><!-- div to hold tooltip. -->
-  <svg width="960" height="600" id="statesvg"></svg> <!-- svg to hold the map. -->
-  <script src="static/js/usStates.js"></script> <!-- creates uStates. -->
-  <script src="http://d3js.org/d3.v3.min.js"></script>
-  <script>
+<script>
 
-    function tooltipHtml(n, d){ /* function to create html content string in tooltip div. */
-      return "<h4>"+n+"</h4><table>"+
-        "<tr><td>Low</td><td>"+(d.low)+"</td></tr>"+
-        "<tr><td>Average</td><td>"+(d.avg)+"</td></tr>"+
-        "<tr><td>High</td><td>"+(d.high)+"</td></tr>"+
-        "</table>";
+d3.csv("static/stateStats.csv", function(err, data) {
+
+  var config = {
+    "color1":"#ffd3e5","color2":"#6b0830", // color boundary
+    "defaultValue":"math_2014", // default selector
+    "state":"stateName" // state names column
+  };
+  
+  var WIDTH = 960, HEIGHT = 500;
+
+  var COLOR_COUNTS = 9;
+  
+  var SCALE = 1;
+
+  var LOCATION_INTELLIGENCE_SERVER_URL="https://api.pitneybowes.com/location-intelligence/geolife/v1/demographics/";
+
+  var centered; // centered/focused state
+  
+  // distributes the colors evenly between config.color1 and config.color2
+  function Interpolate(start, end, steps, count) {
+      var s = start,
+          e = end,
+          final = s + (((e - s) / steps) * count);
+      return Math.floor(final);
+  }
+
+  function Color(_r, _g, _b) {
+      var r, g, b;
+      var setColors = function(_r, _g, _b) {
+          r = _r;
+          g = _g;
+          b = _b;
+      };
+  
+      setColors(_r, _g, _b);
+      this.getColors = function() {
+          var colors = {
+              r: r,
+              g: g,
+              b: b
+          };
+          return colors;
+      };
+
+      this.getRGB = function(){
+        return "rgb(" + r + "," + g +
+                  "," + b + ")";
+      }
+  }
+  
+  function hexToRgb(hex) {
+      var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+      } : null;
+  }
+  
+  // Displays the values as 1M, 4K etc
+  function valueFormat(d) {
+    if (d > 1000000000) {
+      return Math.round(d / 1000000000 * 10) / 10 + "B";
+    } else if (d > 1000000) {
+      return Math.round(d / 1000000 * 10) / 10 + "M";
+    } else if (d > 1000) {
+      return Math.round(d / 1000 * 10) / 10 + "K";
+    } else {
+      return d;
+    }
+  }
+  
+  var fields = Object.keys(data[0]);
+
+  console.log(fields)
+  var option_select = d3.select('#selectors').append("select")
+      .attr("class", "option-select");
+  for (var i = 1; i < fields.length; i++) {
+    if (fields[i] !== config.state) {
+      var opt = option_select.append("option")
+        .attr("value", fields[i])
+        .text(fields[i]);
+      
+      if (fields[i] === config.defaultValue) {
+        opt.attr("selected", "true");
+      }
+    }
+  }
+  
+  var COLOR_FIRST = config.color1, COLOR_LAST = config.color2;
+  
+  var rgb = hexToRgb(COLOR_FIRST);
+  
+  var COLOR_START = new Color(rgb.r, rgb.g, rgb.b);
+  
+  rgb = hexToRgb(COLOR_LAST);
+  var COLOR_END = new Color(rgb.r, rgb.g, rgb.b);
+  
+  var width = WIDTH,
+      height = HEIGHT;
+  
+  var startColors = COLOR_START.getColors(),
+      endColors = COLOR_END.getColors();
+  
+  var colors = [];
+  
+  for (var i = 0; i < COLOR_COUNTS; i++) {
+    var r = Interpolate(startColors.r, endColors.r, COLOR_COUNTS, i);
+    var g = Interpolate(startColors.g, endColors.g, COLOR_COUNTS, i);
+    var b = Interpolate(startColors.b, endColors.b, COLOR_COUNTS, i);
+    colors.push(new Color(r, g, b));
+  }
+  
+  var quantize = d3.scale.quantize()
+      .domain([0, 1.0])
+      .range(d3.range(COLOR_COUNTS).map(function(i) { return i }));
+
+  // D3 Projection
+  var projection = d3.geo.albersUsa()
+             .translate([width/2, height/2])    // translate to center of screen
+             // .scale([1000]);          // scale things down so see entire US
+          
+  // Define path generator
+  var path = d3.geo.path()               // path generator that will convert GeoJSON to SVG paths
+           .projection(projection);  // tell path generator to use albersUsa projection
+  
+  var path = d3.geo.path();
+  
+  var svg = d3.select("#canvas-svg").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+  var g = svg.append("g");
+  
+  d3.tsv("https://s3-us-west-2.amazonaws.com/vida-public/geo/us-state-names.tsv", function(error, names) {
+  d3.json("https://s3-us-west-2.amazonaws.com/vida-public/geo/us.json", function(error, us) {
+    
+    var name_id_map = {};
+    var id_name_map = {};
+    
+    for (var i = 0; i < names.length; i++) {
+      name_id_map[names[i].name.toUpperCase()] = names[i].id;
+      id_name_map[names[i].id] = names[i].name.toUpperCase();
     }
     
-    var sampleData ={}; /* Sample random data. */ 
-    ["HI", "AK", "FL", "SC", "GA", "AL", "NC", "TN", "RI", "CT", "MA",
-    "ME", "NH", "VT", "NY", "NJ", "PA", "DE", "MD", "WV", "KY", "OH", 
-    "MI", "WY", "MT", "ID", "WA", "DC", "TX", "CA", "AZ", "NV", "UT", 
-    "CO", "NM", "OR", "ND", "SD", "NE", "IA", "MS", "IN", "IL", "MN", 
-    "WI", "MO", "AR", "OK", "KS", "LS", "VA"]
-      .forEach(function(d){ 
-        var low=Math.round(100*Math.random()), 
-          mid=Math.round(100*Math.random()), 
-          high=Math.round(100*Math.random());
-        sampleData[d]={low:d3.min([low,mid,high]), high:d3.max([low,mid,high]), 
-            avg:Math.round((low+mid+high)/3), color:d3.interpolate("#ffffcc", "#800026")(low/100)}; 
+    var dataMap = {};
+    
+    data.forEach(function(d) {
+      if (!dataMap[d[config.state]]) {
+        dataMap[d[config.state]] = {};
+      }
+      
+      for (var i = 1; i < Object.keys(data[0]).length; i++) {
+        if (Object.keys(data[0])[i] !== config.state) {
+          dataMap[d[config.state]][Object.keys(data[0])[i]] =
+            +d[Object.keys(data[0])[i]];
+        }
+      }
+    });
+
+    // handles focusing on a state on click
+    function clicked(d) {
+      var x, y, // translation by (-x,-y)
+        scaleTransformation;
+
+      if (d && centered !== d) {
+        var centroid = path.centroid(d);
+        // console.log(centroid)
+
+        // centroid shifts by a factor of SCALE
+        x = centroid[0] * SCALE;
+        y = centroid[1] * SCALE;
+
+        // hiding the legend so that it does not overlap the map
+        if (x < 710){
+          $(".legend").hide();
+        }
+
+        if (g.select("circle").empty()){
+          addSchools(d);
+        } else{
+          $("circle").show();
+        }
+
+        scaleTransformation = 3; 
+
+        centered = d;
+      } else {
+        x = WIDTH / 2;
+        y = HEIGHT / 2;
+
+        scaleTransformation = 1; // go back to full screen
+
+        $("circle").hide();
+
+        centered = null;
+      }
+
+      g.selectAll("path")
+          .classed("active", centered && function(d) { return d === centered; });
+
+      g.transition()
+          .duration(750)
+          .attr("transform", "translate(" + WIDTH / 2 + "," + HEIGHT / 2 + ")scale(" + scaleTransformation + ")translate(" + -x + "," + -y + ")")
+          .style("stroke-width", 1.5 / scaleTransformation + "px")
+          .each("end", function(){ 
+            if (centered === null || centered !== null && x > 710) {
+              // if no centering is done or centering doesn't make legend overlap
+              $(".legend").show()
+            }
+          });
+    }
+
+    function addSchools(state){
+
+      var stateName;
+      for (var key in names){
+        if (names[key].id == state.id){
+          stateName = names[key].name;
+        }
+      }
+
+      if (stateName === undefined){
+        return;
+      }
+
+      // // example csv call
+      // d3.csv('/static/bios.csv', function (error, data){
+      //   console.log(data);
+      // })
+
+      d3.csv("static/schoolsGeo.csv", function(geodata) {
+      g.selectAll("circle")
+        .data(geodata)
+        .enter()
+        .append("circle")
+        .attr("cx", function(d) {
+          if (projection([d.lng, d.lat]) == null){
+            return 0;
+          }
+          return projection([d.lng, d.lat])[0];
+        })
+        .attr("cy", function(d) {
+          if (projection([d.lng, d.lat]) == null){
+            return 0;
+          }
+          return projection([d.lng, d.lat])[1];
+        })
+        .attr("r", function(d) {
+          return 1;
+          // return Math.sqrt(d.years) * 4;
+        })
+          .style("fill", "rgb(217,91,67)")  
+          .style("opacity", 0.85) 
+
+        // Modification of custom tooltip code provided by Malcolm Maclean, "D3 Tips and Tricks" 
+        // http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html
+        .on("mousemove", function(d) {
+            var html = "";
+  
+            html += "<div class=\"tooltip_kv\">";
+            html += "<span class=\"tooltip_key\">";
+            html += d.cleaned_Addresses;
+            html += "</span>";
+            html += "</div>";
+            
+            $("#school-tooltip-container").html(html);
+            $(this).attr("fill-opacity", "0.7");
+            $("#school-tooltip-container").show();
+            
+            var coordinates = d3.mouse(this);
+            
+            var map_width = $('.states-choropleth-container')[0].getBoundingClientRect().width;
+            
+            if (d3.event.layerX < map_width / 2) {
+              d3.select("#school-tooltip-container")
+                .style("top", (d3.event.layerY + 15) + "px")
+                .style("left", (d3.event.layerX + 15) + "px");
+            } else {
+              var tooltip_width = $("#school-tooltip-container").width();
+              d3.select("#school-tooltip-container")
+                .style("top", (d3.event.layerY + 15) + "px")
+                .style("left", (d3.event.layerX - tooltip_width - 30) + "px");
+            }
+        })
+        .on("mouseout", function() {
+            $(this).attr("fill-opacity", "1.0");
+            $("#school-tooltip-container").hide();
+        })
+        // .on("click", function (d) {
+        //   var apiUrl = 'byaddress?address=' + address;
+        //     if (filter!= null && filter != undefined){
+        //       apiUrl += '&filter=' + filter;
+        //     }
+        //     if (profile!= null && profile != undefined){
+        //       apiUrl += '&profile=' + profile;
+        //     }
+        //     if (country!= null && country != undefined){
+        //       apiUrl += '&country=' + country;
+        //     }
+        //       apiUrl += '&dataType=json';
+
+        //   var newHTML = $("#school-tooltip-container").html();
+        //   $.ajax({
+        //     method: 'GET', 
+        //     beforeSend: function (request){
+        //       request.setRequestHeader('Authorization','Bearer vDfbowthiMAPdTTi12XiAUVpCq2S');
+        //     },
+        //     url: LOCATION_INTELLIGENCE_SERVER_URL  + apiUrl,
+        //     data: {
+
+        //     },
+        //     success: function (data, textStatus, jqXHR){ 
+        //         newHTML = JSON.parse(data).redirect
+        //     }
+        // });
+      }); 
+    }
+    
+    // constructs the d3.map object
+    function drawMap(dataColumn) {
+      var valueById = d3.map();
+      
+      data.forEach(function(d) {
+        var id = name_id_map[d['stateName']];
+        console.log(name_id_map)
+        valueById.set(id, +d[dataColumn]); 
       });
-    
-    /* draw states on id #statesvg */ 
-    uStates.draw("#statesvg", sampleData, tooltipHtml);
-    
-    // d3.select(self.frameElement).style("height", "600px"); 
-  </script>
+      
+      quantize.domain([d3.min(data, function(d){ return +d[dataColumn] }),
+        d3.max(data, function(d){ return +d[dataColumn] })]);
+      
+      // console.log(topojson.feature(us, us.objects.states).features);
 
-</body>
-</html>
+      g.append("g").attr("class", "states-choropleth-container")
+        .selectAll("path")
+          .data(topojson.feature(us, us.objects.states).features)
+        .enter().append("path")
+          .attr("transform", "scale(" + SCALE + ")")
+          .style("fill", function(d) {
+            console.log(valueById)
+            if (valueById.get(d.id)) {
+              var i = quantize(valueById.get(d.id));
+              var color = colors[i].getColors();
+              return "rgb(" + color.r + "," + color.g +
+                  "," + color.b + ")";
+            } else {
+              return "";
+            }
+          })
+          .attr("d", path)
+          // tooltip
+          .on("mousemove", function(d) {
+              // console.log(dataMap)
+              var html = "";
+    
+              html += "<div class=\"tooltip_kv\">";
+              html += "<span class=\"tooltip_key\">";
+              html += id_name_map[d.id];
+              html += "</span>";
+              html += "</div>";
+              
+              for (var i = 2; i < Object.keys(data[0]).length; i++) {
+                html += "<div class=\"tooltip_kv\">";
+                html += "<span class='tooltip_key'>";
+                html += Object.keys(data[0])[i];
+                html += "</span>";
+                html += "<span class=\"tooltip_value\">";
+                html += valueFormat(dataMap[id_name_map[d.id].toUpperCase()][Object.keys(data[0])[i]].toFixed(2));
+                html += "";
+                html += "</span>";
+                html += "</div>";
+              }
+              
+              $("#tooltip-container").html(html);
+              $(this).attr("fill-opacity", "0.7");
+              $("#tooltip-container").show();
+              
+              var coordinates = d3.mouse(this);
+              
+              var map_width = $('.states-choropleth-container')[0].getBoundingClientRect().width;
+              
+              if (d3.event.layerX < map_width / 2) {
+                d3.select("#tooltip-container")
+                  .style("top", (d3.event.layerY + 15) + "px")
+                  .style("left", (d3.event.layerX + 15) + "px");
+              } else {
+                var tooltip_width = $("#tooltip-container").width();
+                d3.select("#tooltip-container")
+                  .style("top", (d3.event.layerY + 15) + "px")
+                  .style("left", (d3.event.layerX - tooltip_width - 30) + "px");
+              }
+          })
+          .on("mouseout", function() {
+              $(this).attr("fill-opacity", "1.0");
+              $("#tooltip-container").hide();
+          })
+          .on("click", clicked);
+    
+      g.append("path")
+          .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+          .attr("class", "states")
+          .attr("transform", "scale(" + SCALE + ")")
+          .attr("d", path);
+    }
+    
+    drawMap(config.defaultValue);
+    
+    option_select.on("change", function() {
+      drawMap($("#selectors").find(".option-select").val());
+    });
+  
+  
+  });
+
+  });
+
+  var colorFirst_rgb = hexToRgb(config.color1);
+  var colorSecond_rgb = hexToRgb(config.color2);
+  
+  // make the legend colors
+  var MIDCOLOR1 =  new Color(
+    Math.floor((colorFirst_rgb.r * 2 + colorSecond_rgb.r )/ 3),
+    Math.floor((colorFirst_rgb.g * 2 + colorSecond_rgb.g )/ 3),
+    Math.floor((colorFirst_rgb.b * 2 + colorSecond_rgb.b )/ 3));
+
+  var MIDCOLOR2 =  new Color(
+    Math.floor((colorFirst_rgb.r + colorSecond_rgb.r * 2)/ 3),
+    Math.floor((colorFirst_rgb.g + colorSecond_rgb.g * 2)/ 3),
+    Math.floor((colorFirst_rgb.b + colorSecond_rgb.b * 2)/ 3));
+
+  var rgb = hexToRgb(COLOR_FIRST);
+  var COLOR_START = new Color(rgb.r, rgb.g, rgb.b);
+  
+  rgb = hexToRgb(COLOR_LAST);
+  var COLOR_END = new Color(rgb.r, rgb.g, rgb.b);
+
+  var color = d3.scale.linear()
+          .range([COLOR_END.getRGB(),MIDCOLOR2.getRGB(),MIDCOLOR1.getRGB(),COLOR_START.getRGB()]);
+
+  var legendText = ["Proficient", "", "", "Not proficient"];
+
+  color.domain([0,1,2,3]);
+  
+  var legend = d3.select("div").append("svg")
+            .attr("class", "legend")
+          .attr("width", 140)
+          .attr("height", 200)
+          .attr("style", "position:absolute; left:800px;top:350px;")
+          .selectAll("g")
+          .data(color.domain().slice())
+          .enter()
+          .append("g")
+          .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+    legend.append("rect")
+        .attr("width", 18)
+        .attr("height", 18)
+        .style("fill", color);
+
+    legend.append("text")
+        .data(legendText)
+          .attr("x", 24)
+          .attr("y", 9)
+          .attr("dy", ".35em")
+          .text(function(d) { return d; });
+});
+
+</script>
