@@ -22,7 +22,16 @@ body {
   fill: #ccc;
 }
 
-#tooltip-container {
+#states-tooltip-container {
+  position: absolute;
+  background-color: #fff;
+  color: #000;
+  padding: 10px;
+  border: 1px solid;
+  display: none;
+}
+
+#schools-tooltip-container {
   position: absolute;
   background-color: #fff;
   color: #000;
@@ -51,7 +60,7 @@ body {
 
 <div id="selectors"></div>
 
-<div id="tooltip-container"></div>
+<div id="states-tooltip-container"></div>
 
 <div id="canvas-svg"></div>
 
@@ -102,6 +111,11 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
           };
           return colors;
       };
+
+      this.getRGB = function(){
+        return "rgb(" + r + "," + g +
+                  "," + b + ")";
+      }
   }
   
   function hexToRgb(hex) {
@@ -205,25 +219,35 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
 
     // handles focusing on a state on click
     function clicked(d) {
-      // console.log("clicked")
-      // console.log(d)
-      // console.log("centered")
-      // console.log(centered)
-      var x, y, k;
+      var x, y, // translation by (-x,-y)
+        scaleTransformation;
 
       if (d && centered !== d) {
         var centroid = path.centroid(d);
-        console.log(centroid)
+        // console.log(centroid)
 
         // centroid shifts by a factor of SCALE
         x = centroid[0] * SCALE;
         y = centroid[1] * SCALE;
-        k = 4;
+
+        // hiding the legend so that it does not overlap the map
+        if (x < 710){
+          $(".legend").hide();
+        }
+
+        addSchools(d);
+
+        scaleTransformation = 4; 
+
         centered = d;
       } else {
         x = WIDTH / 2;
         y = HEIGHT / 2;
-        k = 1; // scale-> go back to full screen
+
+        scaleTransformation = 1; // go back to full screen
+
+        g.selectAll("circle").remove();
+
         centered = null;
       }
 
@@ -232,8 +256,33 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
 
       g.transition()
           .duration(750)
-          .attr("transform", "translate(" + WIDTH / 2 + "," + HEIGHT / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
-          .style("stroke-width", 1.5 / k + "px");
+          .attr("transform", "translate(" + WIDTH / 2 + "," + HEIGHT / 2 + ")scale(" + scaleTransformation + ")translate(" + -x + "," + -y + ")")
+          .style("stroke-width", 1.5 / scaleTransformation + "px")
+          .each("end", function(){ 
+            if (centered === null || centered !== null && x > 710) {
+              // if no centering is done or centering doesn't make legend overlap
+              $(".legend").show()
+            }
+          });
+    }
+
+    function addSchools(state){
+
+      var stateName;
+      for (var key in names){
+        if (names[key].id == state.id){
+          stateName = names[key].name;
+        }
+      }
+
+      if (stateName === undefined){
+        return;
+      }
+
+      // example csv call
+      d3.csv('/static/venture-capital.csv', function (error, data){
+        // console.log(data);
+      })
     }
     
     // constructs the d3.map object
@@ -247,7 +296,9 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
       
       quantize.domain([d3.min(data, function(d){ return +d[dataColumn] }),
         d3.max(data, function(d){ return +d[dataColumn] })]);
-    
+      
+      // console.log(topojson.feature(us, us.objects.states).features);
+
       g.append("g").attr("class", "states-choropleth-container")
         .selectAll("path")
           .data(topojson.feature(us, us.objects.states).features)
@@ -286,28 +337,28 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
                 html += "</div>";
               }
               
-              $("#tooltip-container").html(html);
+              $("#states-tooltip-container").html(html);
               $(this).attr("fill-opacity", "0.7");
-              $("#tooltip-container").show();
+              $("#states-tooltip-container").show();
               
               var coordinates = d3.mouse(this);
               
               var map_width = $('.states-choropleth-container')[0].getBoundingClientRect().width;
               
               if (d3.event.layerX < map_width / 2) {
-                d3.select("#tooltip-container")
+                d3.select("#states-tooltip-container")
                   .style("top", (d3.event.layerY + 15) + "px")
                   .style("left", (d3.event.layerX + 15) + "px");
               } else {
-                var tooltip_width = $("#tooltip-container").width();
-                d3.select("#tooltip-container")
+                var tooltip_width = $("#states-tooltip-container").width();
+                d3.select("#states-tooltip-container")
                   .style("top", (d3.event.layerY + 15) + "px")
                   .style("left", (d3.event.layerX - tooltip_width - 30) + "px");
               }
           })
           .on("mouseout", function() {
                   $(this).attr("fill-opacity", "1.0");
-                  $("#tooltip-container").hide();
+                  $("#states-tooltip-container").hide();
           })
           .on("click", clicked);
     
@@ -326,7 +377,58 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
   
   
   });
+
   });
+
+  var colorFirst_rgb = hexToRgb(config.color1);
+  var colorSecond_rgb = hexToRgb(config.color2);
+  
+  // make the legend colors
+  var MIDCOLOR1 =  new Color(
+    Math.floor((colorFirst_rgb.r * 2 + colorSecond_rgb.r )/ 3),
+    Math.floor((colorFirst_rgb.g * 2 + colorSecond_rgb.g )/ 3),
+    Math.floor((colorFirst_rgb.b * 2 + colorSecond_rgb.b )/ 3));
+
+  var MIDCOLOR2 =  new Color(
+    Math.floor((colorFirst_rgb.r + colorSecond_rgb.r * 2)/ 3),
+    Math.floor((colorFirst_rgb.g + colorSecond_rgb.g * 2)/ 3),
+    Math.floor((colorFirst_rgb.b + colorSecond_rgb.b * 2)/ 3));
+
+  var rgb = hexToRgb(COLOR_FIRST);
+  var COLOR_START = new Color(rgb.r, rgb.g, rgb.b);
+  
+  rgb = hexToRgb(COLOR_LAST);
+  var COLOR_END = new Color(rgb.r, rgb.g, rgb.b);
+
+  var color = d3.scale.linear()
+          .range([COLOR_END.getRGB(),MIDCOLOR2.getRGB(),MIDCOLOR1.getRGB(),COLOR_START.getRGB()]);
+
+  var legendText = ["Proficient", "", "", "Not proficient"];
+
+  color.domain([0,1,2,3]);
+  
+  var legend = d3.select("div").append("svg")
+            .attr("class", "legend")
+          .attr("width", 140)
+          .attr("height", 200)
+          .attr("style", "position:absolute; left:800px;top:350px;")
+          .selectAll("g")
+          .data(color.domain().slice())
+          .enter()
+          .append("g")
+          .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+    legend.append("rect")
+        .attr("width", 18)
+        .attr("height", 18)
+        .style("fill", color);
+
+    legend.append("text")
+        .data(legendText)
+          .attr("x", 24)
+          .attr("y", 9)
+          .attr("dy", ".35em")
+          .text(function(d) { return d; });
 });
 
 </script>
