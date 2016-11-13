@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Step 1 - A Basic Pie Chart</title>
+  </head>
+  <body>
+    <div id="chart"></div>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="geoLife_cs.js"></script>
+    <script>
+      (function(d3) {
+        'use strict';
+        /*d3.csv("/data/cities.csv", function(data) {
+            console.log(data[0]);
+        });*/
+        //var racedata = dataset['enrollByRace']
+        var racedata = ['61', '105', '87', '103', '81', '112']; // temp
+
+        console.log(getGeoLifeByAddress('JSON',"110+Mustard,+CA+92620",null,null,"USA"));
+        while(fuck == false){
+        }
+        var pitneydata = json_obj['themes']['raceTheme']['rangeVariable'][0]['field'];
+        var pitneydata2 = json_obj['themes']['ethnicityTheme']['individualValueVariable'];
+        var dataset = [
+          { label: 'American Indian/Alaskan', count: racedata[0] },
+          { label: 'Asian/Pacific Islander', count: racedata[1] },
+          { label: 'Black', count: racedata[2] },
+          { label: 'Hispanic', count: racedata[3] },
+          { label: 'White', count: racedata[4] },
+          { label: 'Two or More', count: racedata[5] }
+        ];
+        console.log(pitneydata);
+        var dataset2 = [
+          { label: 'American Indian/Alaskan', count: pitneydata[2]['value']+pitneydata[4]},
+          { label: 'Asian/Pacific Islander', count: pitneydata[3]['value'] },
+          { label: 'Black', count: pitneydata[1] ['value'] },
+          { label: 'Hispanic', count: pitneydata2[1] ['value'] },
+          { label: 'White', count: pitneydata[0] ['value'] },
+          { label: 'Two or More', count: pitneydata[5] ['value']+pitneydata2[0]}
+        ];
+
+        var width = 480;
+        var height = 480;
+        var radius = Math.min(width, height) / 3;
+        var radius2 = Math.min(width, height)/ 2
+
+        var color = d3.scaleOrdinal(d3.schemeCategory20b);
+
+        var svg = d3.select('#chart')
+          .append('svg')
+          .attr('width', width)
+          .attr('height', height)
+
+        var g = svg.append('g')
+          .attr('transform', 'translate(' + (width / 2) +
+            ',' + (height / 2) + ')');
+
+        var g2 = svg.append('g')
+          .attr('transform', 'translate(' + (width / 2) +
+            ',' + (height / 2) + ')');
+
+        var arc = d3.arc()
+          .innerRadius(radius/2)
+          .outerRadius(radius);
+
+        var pie = d3.pie()
+          .value(function(d) { return d.count; })
+          .sort(null);
+
+        var path = g.selectAll('path')
+          .data(pie(dataset))
+          .enter()
+          .append('path')
+          .attr('d', arc)
+          .attr('fill', function(d) {
+            return color(d.data.label);
+          });
+
+
+
+        var arc2 = d3.arc()
+          .innerRadius(radius)
+          .outerRadius(radius2);
+
+        var pie2 = d3.pie()
+          .value(function(d) { return d.count; })
+          .sort(null);
+
+        var path2 = g2.selectAll('path')
+          .data(pie(dataset2))
+          .enter()
+          .append('path')
+          .attr('d', arc2)
+          .attr('fill', function(d) {
+            return color(d.data.label);
+          });
+      })(window.d3);
+    </script>
+  </body>
+</html>
