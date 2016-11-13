@@ -182,6 +182,15 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
   var quantize = d3.scale.quantize()
       .domain([0, 1.0])
       .range(d3.range(COLOR_COUNTS).map(function(i) { return i }));
+
+  // D3 Projection
+  var projection = d3.geo.albersUsa()
+             .translate([width/2, height/2])    // translate to center of screen
+             .scale([1000]);          // scale things down so see entire US
+          
+  // Define path generator
+  var path = d3.geo.path()               // path generator that will convert GeoJSON to SVG paths
+           .projection(projection);  // tell path generator to use albersUsa projection
   
   var path = d3.geo.path();
   
@@ -280,8 +289,8 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
       }
 
       // example csv call
-      d3.csv('/static/venture-capital.csv', function (error, data){
-        // console.log(data);
+      d3.csv('/static/bios.csv', function (error, data){
+        console.log(data);
       })
     }
     
