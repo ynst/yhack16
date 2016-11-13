@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Yunus Tuncbilek Personal Website">
+    <meta name="author" content="Yunus Tuncbilek">
+
+    <!-- <link rel="shortcut icon" href="/static/img/favicon.ico" /> -->
+    <title>Yunus Tuncbilek</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+    
+    <!-- prevent browser caching, use next one after testing -->
+    <style type="text/css">
+      html,
+      body {
+        font-family: 'Montserrat', sans-serif;
+      }
+
+      .central_ball{
+        border-radius: 50%;
+        background-color: #f22;
+        margin-left:200px;
+        margin-right:200px;
+      }
+    </style>
+    <!-- <link href="static/css/main.css" rel="stylesheet" type="text/css" /> -->
+    
+    <!-- Font is Montserrat -->
+    <link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet' type='text/css'>
+  </head>
+  <body>
+    <div id="svg_container" style="position: absolute;left: 0px;top: 0px;z-index: -1;"></div>
+    <div class="central_ball">
+      <h4>Yunus Tuncbilek</h4>
+      <p> Hi, this is Yunus' personal website</p>
+      <div class="social">
+        <a href="http://www.linkedin.com/in/yunustuncbilek" target="_blank"> <img src="/static/img/linkedin_logo.png"> </a>
+      </div>
+    </div>
+    <script src="//d3js.org/d3.v3.min.js"></script>
+    <script>
+
+    var width = $( window ).width(),
+        height = $( window ).height();
+
+    var nodes = d3.range(40).map(function() { return {radius: Math.random() * 12 + 4}; }),
+        root = nodes[0],
+        // central_ball_bg = nodes[1],
+        color = d3.scale.category10();
+
+    root.radius = 0;
+    root.fixed = true;
+
+    function loadcharges (ball , index){
+      if (index == 0){
+        return -2000;
+      }
+      else{
+        return 0;
+      }
+    }
+
+    var force = d3.layout.force()
+        .gravity(0.05)
+        .charge(function(d, i) {return loadcharges(d,i)})
+        .nodes(nodes)
+        .size([width, height]);
+
+    force.start();
+
+    var svgObject = d3.select("#svg_container").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("style", "z-index: 1;")
+
+    var central_ball = svgObject.append("circle")
+        .attr("cx", $( window ).width()/ 2)
+        .attr("cy", $( window ).height()/ 2)
+        .attr("r", Math.min($( window ).width()/ 3 , 200))
+        .style("fill", color(1));
+
+    var central_force = d3.layout.force()
+        .gravity(1)
+        .charge(20000)
+        .nodes(nodes)
+        .size([width, height]);
+
+    central_force.start();
+
+    // central_ball_bg.radius = Math.min($( window ).width()/ 3, 200);
+    // central_ball_bg.fixed = true;
+
+    svgObject.selectAll("circle")
+        .data(nodes.slice(1))
+      .enter().append("circle")
+        .attr("r", function(d) { return d.radius; })
+        .style("fill", function(d, i) { 
+          // console.log(d)
+          // console.log(i)
+          if (i == 1)
+            return color(3)
+          else 
+            return color(i % 3);
+        });
+
+    force.on("tick", function(e) {
+
+      var q = d3.geom.quadtree(nodes),
+          i = 0,
+          n = nodes.length;
+
+
+      while (++i < n) q.visit(collide(nodes[i]));
+
+      svgObject.selectAll("circle")
+          .attr("cx", function(d) { return d.x; })
+          .attr("cy", function(d) { return d.y; });
+      central_ball.attr("cx", $( window ).width()/ 2)
+        .attr("cy", $( window ).height()/ 2);
+    });
+
+    $( document ).on( "mousemove", function( event ) {
+      root.px = event.pageX;
+      root.py = event.pageY;
+      force.resume();
+      central_force.resume();
+    });
+
+    function collide(node) {
+      var r = node.radius + 16,
+          nx1 = node.x - r,
+          nx2 = node.x + r,
+          ny1 = node.y - r,
+          ny2 = node.y + r;
+      return function(quad, x1, y1, x2, y2) {
+        if (quad.point && (quad.point !== node)) {
+          var x = node.x - quad.point.x,
+              y = node.y - quad.point.y,
+              l = Math.sqrt(x * x + y * y),
+              r = node.radius + quad.point.radius;
+          if (l < r) {
+            l = (l - r) / l * .5;
+            node.x -= x *= l;
+            node.y -= y *= l;
+            quad.point.x += x;
+            quad.point.y += y;
+          }
+        }
+        return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
+      };
+    }
+
+    </script>
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  </body>
+</html>
