@@ -22,7 +22,7 @@ body {
   fill: #ccc;
 }
 
-#states-tooltip-container {
+#tooltip-container {
   position: absolute;
   background-color: #fff;
   color: #000;
@@ -31,7 +31,7 @@ body {
   display: none;
 }
 
-#schools-tooltip-container {
+#school-tooltip-container {
   position: absolute;
   background-color: #fff;
   color: #000;
@@ -39,6 +39,7 @@ body {
   border: 1px solid;
   display: none;
 }
+
 
 .tooltip_key {
   font-weight: bold;
@@ -60,7 +61,8 @@ body {
 
 <div id="selectors"></div>
 
-<div id="states-tooltip-container"></div>
+<div id="tooltip-container"></div>
+<div id="school-tooltip-container"></div>
 
 <div id="canvas-svg"></div>
 
@@ -78,7 +80,7 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
     "state":"state_or_territory" // state names column
   };
   
-  var WIDTH = 1000, HEIGHT = 500;
+  var WIDTH = 960, HEIGHT = 500;
 
   var COLOR_COUNTS = 9;
   
@@ -186,7 +188,7 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
   // D3 Projection
   var projection = d3.geo.albersUsa()
              .translate([width/2, height/2])    // translate to center of screen
-             .scale([1000]);          // scale things down so see entire US
+             // .scale([1000]);          // scale things down so see entire US
           
   // Define path generator
   var path = d3.geo.path()               // path generator that will convert GeoJSON to SVG paths
@@ -246,7 +248,7 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
 
         addSchools(d);
 
-        scaleTransformation = 4; 
+        scaleTransformation = 3; 
 
         centered = d;
       } else {
@@ -288,10 +290,81 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
         return;
       }
 
-      // example csv call
-      d3.csv('/static/bios.csv', function (error, data){
-        console.log(data);
-      })
+      // // example csv call
+      // d3.csv('/static/bios.csv', function (error, data){
+      //   console.log(data);
+      // })
+
+      d3.csv("static/geohead.csv", function(data) {
+      g.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", function(d) {
+          if (projection([d.lng, d.lat]) == null){
+            return 0;
+          }
+          console.log(projection([d.lng, d.lat])[0])
+          return projection([d.lng, d.lat])[0];
+        })
+        .attr("cy", function(d) {
+          if (projection([d.lng, d.lat]) == null){
+            return 0;
+          }
+          return projection([d.lng, d.lat])[1];
+        })
+        .attr("r", function(d) {
+          return 1;
+          // return Math.sqrt(d.years) * 4;
+        })
+          .style("fill", "rgb(217,91,67)")  
+          .style("opacity", 0.85) 
+
+        // Modification of custom tooltip code provided by Malcolm Maclean, "D3 Tips and Tricks" 
+        // http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html
+        .on("mousemove", function(d) {
+            var html = "";
+  
+            html += "<div class=\"tooltip_kv\">";
+            html += "<span class=\"tooltip_key\">";
+            html += d.cleaned_Addresses;
+            html += "</span>";
+            html += "</div>";
+            for (var i = 1; i < Object.keys(data[0]).length; i++) {
+              html += "<div class=\"tooltip_kv\">";
+              html += "<span class='tooltip_key'>";
+              html += Object.keys(data[0])[i];
+              html += "</span>";
+              html += "<span class=\"tooltip_value\">";
+              html += d[Object.keys(data[0])[i]];
+              html += "</span>";
+              html += "</div>";
+            }
+            
+            $("#school-tooltip-container").html(html);
+            $(this).attr("fill-opacity", "0.7");
+            $("#school-tooltip-container").show();
+            
+            var coordinates = d3.mouse(this);
+            
+            var map_width = $('.states-choropleth-container')[0].getBoundingClientRect().width;
+            
+            if (d3.event.layerX < map_width / 2) {
+              d3.select("#school-tooltip-container")
+                .style("top", (d3.event.layerY + 15) + "px")
+                .style("left", (d3.event.layerX + 15) + "px");
+            } else {
+              var tooltip_width = $("#school-tooltip-container").width();
+              d3.select("#school-tooltip-container")
+                .style("top", (d3.event.layerY + 15) + "px")
+                .style("left", (d3.event.layerX - tooltip_width - 30) + "px");
+            }
+          })
+          .on("mouseout", function() {
+              $(this).attr("fill-opacity", "1.0");
+              $("#school-tooltip-container").hide();
+          })
+      }); 
     }
     
     // constructs the d3.map object
@@ -346,28 +419,28 @@ d3.csv("https://gist.githubusercontent.com/dnprock/5215cc464cfb9affd283/raw/61bd
                 html += "</div>";
               }
               
-              $("#states-tooltip-container").html(html);
+              $("#tooltip-container").html(html);
               $(this).attr("fill-opacity", "0.7");
-              $("#states-tooltip-container").show();
+              $("#tooltip-container").show();
               
               var coordinates = d3.mouse(this);
               
               var map_width = $('.states-choropleth-container')[0].getBoundingClientRect().width;
               
               if (d3.event.layerX < map_width / 2) {
-                d3.select("#states-tooltip-container")
+                d3.select("#tooltip-container")
                   .style("top", (d3.event.layerY + 15) + "px")
                   .style("left", (d3.event.layerX + 15) + "px");
               } else {
-                var tooltip_width = $("#states-tooltip-container").width();
-                d3.select("#states-tooltip-container")
+                var tooltip_width = $("#tooltip-container").width();
+                d3.select("#tooltip-container")
                   .style("top", (d3.event.layerY + 15) + "px")
                   .style("left", (d3.event.layerX - tooltip_width - 30) + "px");
               }
           })
           .on("mouseout", function() {
-                  $(this).attr("fill-opacity", "1.0");
-                  $("#states-tooltip-container").hide();
+              $(this).attr("fill-opacity", "1.0");
+              $("#tooltip-container").hide();
           })
           .on("click", clicked);
     
